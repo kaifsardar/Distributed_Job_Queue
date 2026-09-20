@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from enum import Enum
 import time
 import uuid
@@ -20,5 +21,5 @@ class Job:
     enqueued_at: float = field(default_factory=time.time)  # used for age-based priority
     attempts: int = 0                          # incremented on each nack/lease-timeout
     not_before: float = 0.0                    # retry backoff — can't be leased before this time
-    leased_by: str | None = None                # which worker currently holds the lease
-    lease_expires_at: float | None = None        # when the sweeper should reclaim it
+    leased_by: Optional[str] = None           # which worker currently holds the lease
+    lease_expires_at: Optional[float] = None        # when the sweeper should reclaim it
