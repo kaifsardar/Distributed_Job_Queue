@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Optional
 from enum import Enum
+from typing import Any, Dict, Optional
 import time
 import uuid
 
@@ -15,7 +15,7 @@ class JobStatus(Enum):
 class Job:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     job_name: str = ""                          # e.g. "resize_image" — looked up in handler map
-    payload: dict = field(default_factory=dict)   # arguments passed to the handler
+    payload: Dict[str, Any] = field(default_factory=dict)   # arguments passed to the handler
     priority: int = 1                        # base priority, before age-boosting
     status: JobStatus = JobStatus.PENDING     
     enqueued_at: float = field(default_factory=time.time)  # used for age-based priority
