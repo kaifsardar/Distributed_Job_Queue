@@ -1,14 +1,12 @@
 from dataclasses import dataclass
-import logging
 import threading
 import time
 from typing import Dict, List, Optional
 
-from broker.models import Job, JobStatus
+from models import Job, JobStatus
 
 MAX_ATTEMPTS: int = 5
 BASE_DELAY: float = 1.0
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -29,7 +27,7 @@ class QueueStore:
         with self._lock:
             self._jobs[job.id] = job
             self._pending.append(job.id)
-            logger.info("--Enqueued job %s: %s", job.id, job)
+            print(f"--Enqueued job {job.id}: {job}")
 
     def get(self, job_id: str) -> Optional[Job]:
         with self._lock:
@@ -44,7 +42,7 @@ class QueueStore:
             job.status = JobStatus.IN_FLIGHT
             job.leased_by = worker_id
             job.lease_expires_at = time.time() + 15
-            logger.info("--Dequeued job %s for worker %s: %s", job.id, worker_id, job)
+            print(f"--Dequeued job {job.id} for worker {worker_id}: {job}")
             return job
 
     def sweep_expired_leases(self, now: Optional[float] = None) -> int:
@@ -58,7 +56,7 @@ class QueueStore:
                     and job.lease_expires_at is not None
                     and job.lease_expires_at < current_time
                 ):
-                    logger.info("--Lease expired for job %s. Reclaiming it.", job.id)
+                    print(f"--Lease expired for job {job.id}. Reclaiming it.")
                     self._mark_failed_locked(job_id, "lease expired")
                     reclaimed += 1
             return reclaimed
@@ -76,29 +74,23 @@ class QueueStore:
             self._mark_failed_locked(job_id, reason)
 
     def _mark_failed_locked(self, job_id: str, reason: str) -> None:
+        '''Mark a job as failed, increment attempts, and either retry or dead-letter it.
+        This method assumes the caller holds the lock.
+        '''
         job = self._jobs[job_id]
         job.attempts += 1
         job.leased_by = None
         job.lease_expires_at = None
         if job.attempts >= MAX_ATTEMPTS:
             job.status = JobStatus.DEAD_LETTERED
-            logger.info(
-                "--Job %s has reached max attempts (%s) and is dead-lettered.",
-                job.id,
-                MAX_ATTEMPTS,
-            )
+            print(f"--Job {job.id} has reached max attempts ({MAX_ATTEMPTS}) and is dead-lettered.")
             self._wal.append(Event("dead_lettered", job_id, reason))
         else:
             job.status = JobStatus.PENDING
             delay = BASE_DELAY * (2 ** job.attempts)
             job.not_before = time.time() + delay
             self._pending.append(job_id)
-            logger.info(
-                "--Job %s failed (attempt %s). It will be retried after %.2f seconds.",
-                job.id,
-                job.attempts,
-                delay,
-            )
+            print(f"--Job {job.id} failed due to '{reason}'. Retrying after {delay:.2f} seconds (attempt {job.attempts}/{MAX_ATTEMPTS}).")
             self._wal.append(Event("retried", job_id, reason, job.attempts))
 
 

@@ -1,11 +1,10 @@
-import logging
 import threading
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from flask import Flask, Response, jsonify, request
 
-from broker.queue_store import QueueStore, sweep_loop
-from broker.models import Job
+from queue_store import QueueStore, sweep_loop
+from models import Job
 
 app = Flask(__name__)
 store = QueueStore()
@@ -137,9 +136,5 @@ def nack(job_id: str) -> RouteResponse:
     )
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
     threading.Thread(target=sweep_loop, args=(store,), daemon=True).start()
     app.run(port=8000, threaded=True)
