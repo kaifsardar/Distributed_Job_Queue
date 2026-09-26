@@ -6,10 +6,10 @@ import uuid
 
 # Job status can be 4 type (PENDING / IN_FLIGHT / ACKED / DEAD_LETTERED)
 class JobStatus(Enum):
-    PENDING = 1
-    IN_FLIGHT = 2
-    ACKED = 3
-    DEAD_LETTERED = 4
+    PENDING = "pending"
+    IN_FLIGHT = "in_flight"
+    ACKED = "acked"
+    DEAD_LETTERED = "dead_lettered"
 
 @dataclass
 class Job:
@@ -22,4 +22,5 @@ class Job:
     attempts: int = 0                          # incremented on each nack/lease-timeout
     not_before: float = 0.0                    # retry backoff — can't be leased before this time
     leased_by: Optional[str] = None           # which worker currently holds the lease
-    lease_expires_at: Optional[float] = None        # when the sweeper should reclaim it
+    lease_expires_at: Optional[float] = None
+    lease_token: Optional[str] = None
