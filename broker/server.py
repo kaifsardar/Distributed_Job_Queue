@@ -137,4 +137,4 @@ def nack(job_id: str) -> RouteResponse:
 
 if __name__ == "__main__":
     threading.Thread(target=sweep_loop, args=(store,), daemon=True).start()
-    app.run(port=8000, threaded=True)
+    app.run(host="0.0.0.0", port=8000, threaded=True)
